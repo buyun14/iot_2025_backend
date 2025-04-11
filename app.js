@@ -8,9 +8,18 @@ const mongoose = require('mongoose');
 const deviceRoutes = require('./routes/deviceRoutes');
 const authMiddleware = require('./middleware/authMiddleware');
 const mqttHandler = require('./services/mqttHandler'); // 引入 MQTT 处理模块
+const cors = require('cors'); // 引入 cors 模块
 
 const app = express();
 
+// 在所有路由之前添加 CORS 配置
+app.use(cors({
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000', // 前端开发服务器地址
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+  }));
+
+  
 console.log('环境变量:', {
   REDIS_URL: process.env.REDIS_URL,
   MQTT_BROKER_URL: process.env.MQTT_BROKER_URL,

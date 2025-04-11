@@ -28,7 +28,7 @@ exports.getDeviceById = async (req, res) => {
   }
 };
 
-// 更新设备参数
+// 更新设备参数(阈值)
 exports.updateDeviceConfig = async (req, res) => {
   const { id } = req.params;
   const { temperature_threshold_low, temperature_threshold_high } = req.body;
