@@ -9,7 +9,10 @@ exports.getDevices = async (req, res) => {
     const devices = await Device.find();
     res.status(200).json(devices);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    if (error.name === 'CastError') {
+      return res.status(400).json({ message: '无效的设备 ID 格式' });
+    }
+    res.status(500).json({ message: '服务器内部错误', error: error.message });
   }
 };
 
@@ -31,6 +34,9 @@ exports.updateDeviceConfig = async (req, res) => {
   const { temperature_threshold_low, temperature_threshold_high } = req.body;
 
   try {
+    const oldDevice = await Device.findOne({ device_id: id });
+    if (!oldDevice) return res.status(404).json({ message: '设备未找到' });
+
     await Device.updateOne(
       { device_id: id },
       { $set: { 
@@ -39,16 +45,14 @@ exports.updateDeviceConfig = async (req, res) => {
       } }
     );
 
-    if (!Device) return res.status(404).json({ message: '设备未找到' });
-
     // 记录日志
     await Log.create({
       log_id: `${id}_config_${Date.now()}`,
       device_id: id,
       event_type: 'parameter_update',
       details: {
-        old_value: device.parameters,
-        new_value: { temperature_threshold_low, temperature_threshold_high },
+        old_value: oldDevice.thresholds,
+        new_value: { lower: temperature_threshold_low, upper: temperature_threshold_high },
       },
     });
 
