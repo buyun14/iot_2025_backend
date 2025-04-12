@@ -10,4 +10,7 @@ const logSchema = new mongoose.Schema({
   details: { type: Object, required: true },
 });
 
+// 添加索引
+logSchema.index({ device_id: 1, timestamp: -1 });
+
 module.exports = mongoose.model('Log', logSchema);

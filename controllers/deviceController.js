@@ -2,6 +2,7 @@
 
 const Device = require('../models/deviceModel');
 const Log = require('../models/logModel');
+const { logger } = require('../middleware/loggerMiddleware'); // 引入日志实例
 
 // 获取设备列表
 exports.getDevices = async (req, res) => {
@@ -84,6 +85,17 @@ exports.deleteDevice = async (req, res) => {
     res.status(204).send();
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+// 批量删除设备
+exports.batchDeleteDevices = async (req, res) => {
+  const { ids } = req.body;
+  try {
+    await DeviceModel.deleteMany({ device_id: { $in: ids } });
+    res.status(204).send();
+  } catch (err) {
+    res.status(500).json({ error: '删除失败' });
   }
 };
 

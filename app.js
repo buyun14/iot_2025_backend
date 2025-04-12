@@ -6,11 +6,16 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const deviceRoutes = require('./routes/deviceRoutes');
+const logRoutes = require('./routes/logRoutes');
 const authMiddleware = require('./middleware/authMiddleware');
 const mqttHandler = require('./services/mqttHandler'); // 引入 MQTT 处理模块
 const cors = require('cors'); // 引入 cors 模块
+const loggerMiddleware = require('./middleware/loggerMiddleware'); // 新增
+const { log } = require('winston');
 
 const app = express();
+
+app.use(loggerMiddleware); 
 
 // 在所有路由之前添加 CORS 配置
 app.use(cors({
@@ -47,5 +52,6 @@ mqttHandler.on('connect', () => {
 
 // 路由
 app.use('/api', deviceRoutes);
+app.use('/api', logRoutes);
 
 module.exports = app;

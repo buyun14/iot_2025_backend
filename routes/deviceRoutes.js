@@ -22,4 +22,7 @@ router.post('/devices', deviceController.createDevice);
 // 删除设备
 router.delete('/devices/:id', deviceController.deleteDevice);
 
+// 批量删除设备
+router.delete('/devices', deviceController.batchDeleteDevices); // 新增路由
+
 module.exports = router;
