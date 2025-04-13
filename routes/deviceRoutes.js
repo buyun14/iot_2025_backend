@@ -25,4 +25,7 @@ router.delete('/devices/:id', deviceController.deleteDevice);
 // 批量删除设备
 router.delete('/devices', deviceController.batchDeleteDevices); // 新增路由
 
+// 在 deviceRoutes.js 中新增以下路由
+router.get('/devices/:id/history', deviceController.getSensorDataHistory);
+
 module.exports = router;

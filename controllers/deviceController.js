@@ -1,6 +1,7 @@
 // controllers/deviceController.js # 控制器逻辑
 
 const Device = require('../models/deviceModel');
+const SensorData = require('../models/sensorDataModel');
 const Log = require('../models/logModel');
 const { logger } = require('../middleware/loggerMiddleware'); // 引入日志实例
 
@@ -120,6 +121,22 @@ exports.triggerFirmwareUpdate = async (req, res) => {
     });
 
     res.status(200).json({ message: '固件更新已触发' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// 在 deviceController.js 中新增以下代码
+// 获取设备历史传感器数据
+exports.getSensorDataHistory = async (req, res) => {
+  const { id } = req.params;
+  try {
+    // 查询传感器数据并按时间倒序排列
+    const data = await SensorData.find({ device_id: id })
+      .sort({ timestamp: -1 }) // 最新数据优先
+      .limit(100); // 默认限制返回数量（可扩展分页参数）
+
+    res.status(200).json(data);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
