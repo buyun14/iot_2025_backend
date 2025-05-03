@@ -7,6 +7,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const deviceRoutes = require('./routes/deviceRoutes');
 const logRoutes = require('./routes/logRoutes');
+const cameraRoutes = require('./routes/cameraRoutes'); // 添加摄像头路由
 const authMiddleware = require('./middleware/authMiddleware');
 const mqttHandler = require('./services/mqttHandler'); // 引入 MQTT 处理模块
 const cors = require('cors'); // 引入 cors 模块
@@ -51,7 +52,10 @@ mqttHandler.on('connect', () => {
 });
 
 // 路由
+//app.use('/api/devices', deviceRoutes);
 app.use('/api', deviceRoutes);
+//app.use('/api/logs', logRoutes);
 app.use('/api', logRoutes);
+app.use('/api/video', cameraRoutes); // 添加视频相关路由，使用 /api/video 前缀
 
 module.exports = app;
