@@ -1,9 +1,16 @@
-// services\mqttHandler.js
+import mqtt from 'mqtt';
+import redisClient from './redisClient';
+import Device, { IDevice } from '../models/deviceModel';
+import SensorData from '../models/sensorDataModel';
+import { Document } from 'mongoose';
 
-const mqtt = require('mqtt');
-const redisClient = require('./redisClient');
-const Device = require('../models/deviceModel');
-const SensorData = require('../models/sensorDataModel');
+interface MQTTMessage {
+  type: string;
+  id: string;
+  value: number;
+}
+
+type DeviceDocument = Document & IDevice;
 
 // 打印 MQTT_BROKER_URL
 console.log('MQTT_BROKER_URL:', process.env.MQTT_BROKER_URL);
@@ -30,9 +37,9 @@ mqttClient.on('close', () => {
   console.log('MQTT 客户端已关闭');
 });
 
-mqttClient.on('message', async (topic, message) => {
+mqttClient.on('message', async (_topic: string, message: Buffer) => {
   try {
-    const data = JSON.parse(message.toString());
+    const data = JSON.parse(message.toString()) as MQTTMessage;
 
     // 数据验证
     if (!data.type || !data.id || typeof data.value !== 'number') {
@@ -46,7 +53,7 @@ mqttClient.on('message', async (topic, message) => {
     console.log(`收到消息: ${JSON.stringify(data)}`);
 
     // 查找设备，如果未找到则动态创建
-    let device = await Device.findOne({ device_id: deviceId });
+    let device = await Device.findOne({ device_id: deviceId }) as DeviceDocument;
     if (!device) {
       console.log(`设备未找到: ${deviceId}，正在创建新设备`);
       device = new Device({
@@ -59,7 +66,7 @@ mqttClient.on('message', async (topic, message) => {
     }
 
     // 更新 Redis 缓存
-    await redisClient.set(`device:${deviceId}:current_value`, value, 'EX', 3600);
+    await redisClient.set(`device:${deviceId}:current_value`, value.toString(), { EX: 3600 });
 
     // 更新设备状态
     updateDeviceStatus(device, value);
@@ -76,8 +83,8 @@ mqttClient.on('message', async (topic, message) => {
 });
 
 // 状态更新函数
-function updateDeviceStatus(device, value) {
-  const STATUS = { ON: 'on', OFF: 'off' };
+function updateDeviceStatus(device: DeviceDocument, value: number): DeviceDocument {
+  const STATUS = { ON: 'on', OFF: 'off' } as const;
   if (value <= device.thresholds.lower) {
     device.status = STATUS.ON;
   } else if (value >= device.thresholds.upper) {
@@ -86,4 +93,4 @@ function updateDeviceStatus(device, value) {
   return device;
 }
 
-module.exports = mqttClient;
+export default mqttClient; 

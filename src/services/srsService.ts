@@ -1,9 +1,28 @@
-// backend/services/srsService.js
-const axios = require('axios');
-const srsConfig = require('../config/srsConfig');
-const Camera = require('../models/cameraModel');
+import axios from 'axios';
+import srsConfig from '../config/srsConfig';
+import Camera from '../models/cameraModel';
+
+interface Stream {
+    vhost: string;
+    app: string;
+    stream: string;
+    param: string;
+    server_id: string;
+    client_id: string;
+    update: string;
+}
+
+interface SRSResponse {
+    code: number;
+    data: {
+        streams: Stream[];
+    };
+}
 
 class SRSService {
+    private baseUrl: string;
+    private apiToken: string;
+
     // 构造函数
     constructor() {
         this.baseUrl = srsConfig.srsServer.baseUrl;
@@ -11,9 +30,9 @@ class SRSService {
     }
 
     // 获取流
-    async getStreams() {
+    async getStreams(): Promise<Stream[]> {
         try {
-            const response = await axios.post(
+            const response = await axios.post<SRSResponse>(
                 `${this.baseUrl}/terraform/v1/mgmt/streams/query`,
                 {},
                 {
@@ -35,7 +54,7 @@ class SRSService {
     }
 
     // 同步流到数据库
-    async syncStreamsWithDatabase() {
+    async syncStreamsWithDatabase(): Promise<Stream[]> {
         try {
             const streams = await this.getStreams();
             
@@ -81,7 +100,7 @@ class SRSService {
     }
 
     // 获取流URL
-    getStreamUrl(streamName, type = 'flv') {
+    getStreamUrl(streamName: string, type: 'flv' | 'hls' | 'webrtc' = 'flv'): string {
         const { playerConfig } = srsConfig;
         switch (type.toLowerCase()) {
             case 'flv':
@@ -96,4 +115,4 @@ class SRSService {
     }
 }
 
-module.exports = new SRSService(); 
+export default new SRSService(); 

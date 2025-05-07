@@ -1,8 +1,8 @@
-// backend/routes/cameraRoutes.js
-const express = require('express');
+import express from 'express';
+import cameraController from '../controllers/cameraController';
+import authMiddleware from '../middleware/authMiddleware';
+
 const router = express.Router();
-const cameraController = require('../controllers/cameraController');
-const authMiddleware = require('../middleware/authMiddleware');
 
 // Apply auth middleware to all routes
 router.use(authMiddleware);
@@ -24,4 +24,4 @@ router.post('/sync', cameraController.syncStreams);
 // 获取流URL
 router.get('/:id/streams', cameraController.getStreamUrls);
 
-module.exports = router; 
+export default router; 

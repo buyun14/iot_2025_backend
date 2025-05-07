@@ -1,8 +1,7 @@
-// routes/deviceRoutes.js
+import express from 'express';
+import * as deviceController from '../controllers/deviceController';
 
-const express = require('express');
 const router = express.Router();
-const deviceController = require('../controllers/deviceController');
 
 // 获取设备列表
 router.get('/devices', deviceController.getDevices);
@@ -23,9 +22,9 @@ router.post('/devices', deviceController.createDevice);
 router.delete('/devices/:id', deviceController.deleteDevice);
 
 // 批量删除设备
-router.delete('/devices', deviceController.batchDeleteDevices); // 新增路由
+router.delete('/devices', deviceController.batchDeleteDevices);
 
-// 在 deviceRoutes.js 中新增以下路由
+// 获取设备历史数据
 router.get('/devices/:id/history', deviceController.getSensorDataHistory);
 
-module.exports = router;
+export default router; 
