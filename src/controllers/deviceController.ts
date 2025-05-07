@@ -1,43 +1,48 @@
-// controllers/deviceController.js # 控制器逻辑
-
-const Device = require('../models/deviceModel');
-const SensorData = require('../models/sensorDataModel');
-const Log = require('../models/logModel');
-const { logger } = require('../middleware/loggerMiddleware'); // 引入日志实例
+import { Request, Response } from 'express';
+import Device from '../models/deviceModel';
+import SensorData from '../models/sensorDataModel';
+import Log from '../models/logModel';
 
 // 获取设备列表
-exports.getDevices = async (req, res) => {
+export const getDevices = async (_req: Request, res: Response): Promise<void> => {
   try {
     const devices = await Device.find();
     res.status(200).json(devices);
   } catch (error) {
-    if (error.name === 'CastError') {
-      return res.status(400).json({ message: '无效的设备 ID 格式' });
+    if (error instanceof Error && error.name === 'CastError') {
+      res.status(400).json({ message: '无效的设备 ID 格式' });
+      return;
     }
-    res.status(500).json({ message: '服务器内部错误', error: error.message });
+    res.status(500).json({ message: '服务器内部错误', error: error instanceof Error ? error.message : String(error) });
   }
 };
 
 // 获取单个设备详情
-exports.getDeviceById = async (req, res) => {
+export const getDeviceById = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
   try {
     const device = await Device.findOne({ device_id: id });
-    if (!device) return res.status(404).json({ message: '设备未找到' });
+    if (!device) {
+      res.status(404).json({ message: '设备未找到' });
+      return;
+    }
     res.status(200).json(device);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: error instanceof Error ? error.message : String(error) });
   }
 };
 
 // 更新设备参数(阈值)
-exports.updateDeviceConfig = async (req, res) => {
+export const updateDeviceConfig = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
   const { temperature_threshold_low, temperature_threshold_high } = req.body;
 
   try {
     const oldDevice = await Device.findOne({ device_id: id });
-    if (!oldDevice) return res.status(404).json({ message: '设备未找到' });
+    if (!oldDevice) {
+      res.status(404).json({ message: '设备未找到' });
+      return;
+    }
 
     await Device.updateOne(
       { device_id: id },
@@ -60,54 +65,58 @@ exports.updateDeviceConfig = async (req, res) => {
 
     res.status(200).json({ message: '参数更新成功' });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: error instanceof Error ? error.message : String(error) });
   }
 };
 
 // 创建新设备
-exports.createDevice = async (req, res) => {
+export const createDevice = async (req: Request, res: Response): Promise<void> => {
   const newDevice = new Device(req.body);
   try {
     await newDevice.save();
     res.status(201).json(newDevice);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(400).json({ message: error instanceof Error ? error.message : String(error) });
   }
 };
 
 // 删除设备
-exports.deleteDevice = async (req, res) => {
+export const deleteDevice = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
   try {
     const result = await Device.deleteOne({ device_id: id });
     if (result.deletedCount === 0) {
-      return res.status(404).json({ message: '设备不存在' });
+      res.status(404).json({ message: '设备不存在' });
+      return;
     }
     res.status(204).send();
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: error instanceof Error ? error.message : String(error) });
   }
 };
 
 // 批量删除设备
-exports.batchDeleteDevices = async (req, res) => {
+export const batchDeleteDevices = async (req: Request, res: Response): Promise<void> => {
   const { ids } = req.body;
   try {
-    await DeviceModel.deleteMany({ device_id: { $in: ids } });
+    await Device.deleteMany({ device_id: { $in: ids } });
     res.status(204).send();
-  } catch (err) {
+  } catch (error) {
     res.status(500).json({ error: '删除失败' });
   }
 };
 
 // 触发固件更新
-exports.triggerFirmwareUpdate = async (req, res) => {
+export const triggerFirmwareUpdate = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
   const { version, url } = req.body;
 
   try {
     const device = await Device.findOne({ device_id: id });
-    if (!device) return res.status(404).json({ message: '设备未找到' });
+    if (!device) {
+      res.status(404).json({ message: '设备未找到' });
+      return;
+    }
 
     // 更新固件版本
     await Device.updateOne({ device_id: id }, { firmware_version: version });
@@ -122,13 +131,12 @@ exports.triggerFirmwareUpdate = async (req, res) => {
 
     res.status(200).json({ message: '固件更新已触发' });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: error instanceof Error ? error.message : String(error) });
   }
 };
 
-// 在 deviceController.js 中新增以下代码
 // 获取设备历史传感器数据
-exports.getSensorDataHistory = async (req, res) => {
+export const getSensorDataHistory = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
   try {
     // 查询传感器数据并按时间倒序排列
@@ -138,6 +146,6 @@ exports.getSensorDataHistory = async (req, res) => {
 
     res.status(200).json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: error instanceof Error ? error.message : String(error) });
   }
-};
+}; 

@@ -1,8 +1,14 @@
-// models/logModel.js
+import mongoose, { Document, Schema } from 'mongoose';
 
-const mongoose = require('mongoose');
+export interface ILog extends Document {
+  log_id: string;
+  device_id: string;
+  timestamp: Date;
+  event_type: string;
+  details: Record<string, any>;
+}
 
-const logSchema = new mongoose.Schema({
+const logSchema = new Schema<ILog>({
   log_id: { type: String, required: true, unique: true },
   device_id: { type: String, required: true },
   timestamp: { type: Date, default: Date.now },
@@ -13,4 +19,4 @@ const logSchema = new mongoose.Schema({
 // 添加索引
 logSchema.index({ device_id: 1, timestamp: -1 });
 
-module.exports = mongoose.model('Log', logSchema);
+export default mongoose.model<ILog>('Log', logSchema); 

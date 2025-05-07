@@ -1,6 +1,6 @@
-// backend/middleware/loggerMiddleware.js
-const morgan = require('morgan');
-const winston = require('winston');
+import { Request, Response, NextFunction } from 'express';
+import morgan from 'morgan';
+import winston from 'winston';
 
 // 创建日志记录器
 const logger = winston.createLogger({
@@ -14,12 +14,21 @@ const logger = winston.createLogger({
 // 使用 Morgan 记录 HTTP 请求
 const morganLogger = morgan(':method :url :status :res[content-length] - :response-time ms');
 
-module.exports = (req, res, next) => {
+interface LogEntry {
+  timestamp: string;
+  method: string;
+  url: string;
+  params: any;
+  body: any;
+  ip: string | undefined;
+}
+
+const loggerMiddleware = (req: Request, res: Response, next: NextFunction): void => {
   // 记录 HTTP 请求基础信息
   morganLogger(req, res, () => {});
 
   // 记录请求详细内容（方法、URL、Body）
-  const logEntry = {
+  const logEntry: LogEntry = {
     timestamp: new Date().toISOString(),
     method: req.method,
     url: req.url,
@@ -43,3 +52,5 @@ module.exports = (req, res, next) => {
 
   next();
 };
+
+export default loggerMiddleware; 

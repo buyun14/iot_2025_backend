@@ -1,7 +1,38 @@
-// backend/models/cameraModel.js
-const mongoose = require('mongoose');
+import mongoose, { Document, Schema } from 'mongoose';
 
-const cameraSchema = new mongoose.Schema({
+interface IStreamInfo {
+    vhost: string;
+    app: string;
+    stream: string;
+    param: string;
+    serverId: string;
+    clientId: string;
+    lastUpdate: Date;
+}
+
+interface IConfiguration {
+    resolution: string;
+    frameRate: number;
+    bitrate: number;
+    codec: string;
+}
+
+export interface ICamera extends Document {
+    deviceId?: string;
+    name: string;
+    description?: string;
+    location?: string;
+    status: 'online' | 'offline' | 'error';
+    streamInfo: IStreamInfo;
+    rtmpUrl?: string;
+    streamSecret?: string;
+    configuration: IConfiguration;
+    metadata: Map<string, any>;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+const cameraSchema = new Schema<ICamera>({
     deviceId: {
         type: String,
         unique: true,
@@ -34,8 +65,8 @@ const cameraSchema = new mongoose.Schema({
         frameRate: Number,
         bitrate: {
             type: Number,
-            get: v => Math.round(v), // 确保是整数
-            set: v => {
+            get: (v: number) => Math.round(v), // 确保是整数
+            set: (v: string | number) => {
                 // 处理带单位的字符串，如 "1024k"
                 if (typeof v === 'string') {
                     const num = parseFloat(v);
@@ -53,7 +84,7 @@ const cameraSchema = new mongoose.Schema({
     },
     metadata: {
         type: Map,
-        of: mongoose.Schema.Types.Mixed
+        of: Schema.Types.Mixed
     },
     createdAt: {
         type: Date,
@@ -67,8 +98,8 @@ const cameraSchema = new mongoose.Schema({
 
 // Update timestamp on save
 cameraSchema.pre('save', function(next) {
-    this.updatedAt = Date.now();
+    this.updatedAt = new Date();
     next();
 });
 
-module.exports = mongoose.model('Camera', cameraSchema); 
+export default mongoose.model<ICamera>('Camera', cameraSchema); 
