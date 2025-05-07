@@ -10,7 +10,9 @@
     "watch": "tsc -w",
     "clean": "rimraf dist",
     "lint": "eslint . --ext .ts",
-    "lint:fix": "eslint . --ext .ts --fix"
+    "lint:fix": "eslint . --ext .ts --fix",
+    "docs": "cross-env NODE_NO_WARNINGS=1 apidoc -i src/ -o docs/",
+    "docs:md": "apidoc-markdown -p docs/ -o docs/api.md"
   },
   "dependencies": {
     "axios": "^1.6.7",
@@ -30,6 +32,9 @@
     "@types/node": "^20.11.16",
     "@typescript-eslint/eslint-plugin": "^6.20.0",
     "@typescript-eslint/parser": "^6.20.0",
+    "apidoc": "^1.2.0",
+    "apidoc-markdown": "^7.3.2",
+    "cross-env": "^7.0.3",
     "eslint": "^8.56.0",
     "nodemon": "^3.0.3",
     "rimraf": "^5.0.5",
