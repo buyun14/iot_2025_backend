@@ -1,9 +1,23 @@
 import { Request, Response } from 'express';
-import Device from '../models/deviceModel';
+import Device, { IDevice } from '../models/deviceModel';
 import SensorData from '../models/sensorDataModel';
 import Log from '../models/logModel';
 
-// 获取设备列表
+/**
+ * @api {get} /api/devices 获取设备列表
+ * @apiName GetDevices
+ * @apiGroup Device
+ * @apiVersion 1.0.0
+ *
+ * @apiSuccess {Object[]} devices 设备列表
+ * @apiSuccess {String} devices.device_id 设备ID
+ * @apiSuccess {Object} devices.thresholds 设备阈值
+ * @apiSuccess {Number} devices.thresholds.lower 下限阈值
+ * @apiSuccess {Number} devices.thresholds.upper 上限阈值
+ * @apiSuccess {String} devices.status 设备状态
+ *
+ * @apiError (500) {String} message 服务器内部错误
+ */
 export const getDevices = async (_req: Request, res: Response): Promise<void> => {
   try {
     const devices = await Device.find();
@@ -17,7 +31,22 @@ export const getDevices = async (_req: Request, res: Response): Promise<void> =>
   }
 };
 
-// 获取单个设备详情
+/**
+ * @api {get} /api/devices/:id 获取单个设备详情
+ * @apiName GetDeviceById
+ * @apiGroup Device
+ * @apiVersion 1.0.0
+ *
+ * @apiParam {String} id 设备ID
+ *
+ * @apiSuccess {Object} device 设备信息
+ * @apiSuccess {String} device.device_id 设备ID
+ * @apiSuccess {Object} device.thresholds 设备阈值
+ * @apiSuccess {String} device.status 设备状态
+ *
+ * @apiError (404) {String} message 设备未找到
+ * @apiError (500) {String} message 服务器内部错误
+ */
 export const getDeviceById = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
   try {
@@ -32,7 +61,21 @@ export const getDeviceById = async (req: Request, res: Response): Promise<void> 
   }
 };
 
-// 更新设备参数(阈值)
+/**
+ * @api {put} /api/devices/:id/config 更新设备参数
+ * @apiName UpdateDeviceConfig
+ * @apiGroup Device
+ * @apiVersion 1.0.0
+ *
+ * @apiParam {String} id 设备ID
+ * @apiBody {Number} temperature_threshold_low 温度下限阈值
+ * @apiBody {Number} temperature_threshold_high 温度上限阈值
+ *
+ * @apiSuccess {String} message 参数更新成功
+ *
+ * @apiError (404) {String} message 设备未找到
+ * @apiError (500) {String} message 服务器内部错误
+ */
 export const updateDeviceConfig = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
   const { temperature_threshold_low, temperature_threshold_high } = req.body;
@@ -69,7 +112,22 @@ export const updateDeviceConfig = async (req: Request, res: Response): Promise<v
   }
 };
 
-// 创建新设备
+/**
+ * @api {post} /api/devices 创建新设备
+ * @apiName CreateDevice
+ * @apiGroup Device
+ * @apiVersion 1.0.0
+ *
+ * @apiBody {String} device_id 设备ID
+ * @apiBody {Object} thresholds 设备阈值
+ * @apiBody {Number} thresholds.lower 下限阈值
+ * @apiBody {Number} thresholds.upper 上限阈值
+ * @apiBody {String} status 设备状态
+ *
+ * @apiSuccess {Object} device 新创建的设备信息
+ *
+ * @apiError (400) {String} message 请求参数错误
+ */
 export const createDevice = async (req: Request, res: Response): Promise<void> => {
   const newDevice = new Device(req.body);
   try {
@@ -80,7 +138,19 @@ export const createDevice = async (req: Request, res: Response): Promise<void> =
   }
 };
 
-// 删除设备
+/**
+ * @api {delete} /api/devices/:id 删除设备
+ * @apiName DeleteDevice
+ * @apiGroup Device
+ * @apiVersion 1.0.0
+ *
+ * @apiParam {String} id 设备ID
+ *
+ * @apiSuccess {String} message 删除成功消息
+ *
+ * @apiError (404) {String} message 设备不存在
+ * @apiError (500) {String} message 服务器内部错误
+ */
 export const deleteDevice = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
   try {
@@ -95,7 +165,18 @@ export const deleteDevice = async (req: Request, res: Response): Promise<void> =
   }
 };
 
-// 批量删除设备
+/**
+ * @api {delete} /api/devices/batch 批量删除设备
+ * @apiName BatchDeleteDevices
+ * @apiGroup Device
+ * @apiVersion 1.0.0
+ *
+ * @apiBody {String[]} ids 设备ID数组
+ *
+ * @apiSuccess {String} message 删除成功消息
+ *
+ * @apiError (500) {String} error 删除失败
+ */
 export const batchDeleteDevices = async (req: Request, res: Response): Promise<void> => {
   const { ids } = req.body;
   try {
@@ -106,7 +187,21 @@ export const batchDeleteDevices = async (req: Request, res: Response): Promise<v
   }
 };
 
-// 触发固件更新
+/**
+ * @api {post} /api/devices/:id/firmware 触发固件更新
+ * @apiName TriggerFirmwareUpdate
+ * @apiGroup Device
+ * @apiVersion 1.0.0
+ *
+ * @apiParam {String} id 设备ID
+ * @apiBody {String} version 固件版本
+ * @apiBody {String} url 固件下载地址
+ *
+ * @apiSuccess {String} message 固件更新已触发
+ *
+ * @apiError (404) {String} message 设备未找到
+ * @apiError (500) {String} message 服务器内部错误
+ */
 export const triggerFirmwareUpdate = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
   const { version, url } = req.body;
@@ -135,7 +230,21 @@ export const triggerFirmwareUpdate = async (req: Request, res: Response): Promis
   }
 };
 
-// 获取设备历史传感器数据
+/**
+ * @api {get} /api/devices/:id/sensor-data 获取设备历史传感器数据
+ * @apiName GetSensorDataHistory
+ * @apiGroup Device
+ * @apiVersion 1.0.0
+ *
+ * @apiParam {String} id 设备ID
+ *
+ * @apiSuccess {Object[]} data 传感器数据列表
+ * @apiSuccess {String} data.device_id 设备ID
+ * @apiSuccess {Number} data.value 传感器值
+ * @apiSuccess {Date} data.timestamp 时间戳
+ *
+ * @apiError (500) {String} message 服务器内部错误
+ */
 export const getSensorDataHistory = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
   try {

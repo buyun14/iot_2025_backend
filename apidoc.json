@@ -1,0 +1,20 @@
+{
+  "name": "IoT 2025 Backend API",
+  "version": "1.0.0",
+  "description": "IoT 2025 项目后端 API 文档",
+  "title": "IoT 2025 API Documentation",
+  "url": "http://localhost:3000/api",
+  "sampleUrl": "http://localhost:3000/api",
+  "header": {
+    "title": "介绍",
+    "content": "本文档提供了 IoT 2025 项目后端 API 的详细说明。"
+  },
+  "footer": {
+    "title": "更多信息",
+    "content": "更多信息请访问项目仓库：https://github.com/buyun14/iot_2025_backend"
+  },
+  "template": {
+    "withCompare": true,
+    "withGenerator": true
+  }
+} 

@@ -11,7 +11,29 @@ interface LogQuery {
   sort?: string;
 }
 
-// 获取日志
+/**
+ * @api {get} /api/logs 获取日志
+ * @apiName GetLogs
+ * @apiGroup Log
+ * @apiVersion 1.0.0
+ *
+ * @apiParam {String} [device_id] 设备ID
+ * @apiParam {String} [start] 开始时间 (ISO 格式)
+ * @apiParam {String} [end] 结束时间 (ISO 格式)
+ * @apiParam {Number} [page=1] 页码
+ * @apiParam {Number} [limit=10] 每页数量
+ * @apiParam {String} [sort=-timestamp] 排序字段
+ *
+ * @apiSuccess {Number} total 总记录数
+ * @apiSuccess {Object[]} logs 日志列表
+ * @apiSuccess {String} logs.log_id 日志ID
+ * @apiSuccess {String} logs.device_id 设备ID
+ * @apiSuccess {String} logs.event_type 事件类型
+ * @apiSuccess {Object} logs.details 详细信息
+ * @apiSuccess {Date} logs.timestamp 时间戳
+ *
+ * @apiError (500) {String} message 获取日志失败
+ */
 export const getLogs = async (req: Request<{}, {}, {}, LogQuery>, res: Response): Promise<void> => {
   try {
     const { device_id, start, end, page = '1', limit = '10', sort = '-timestamp' } = req.query;
