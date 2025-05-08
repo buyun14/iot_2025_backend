@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import Device, { IDevice } from '../models/deviceModel';
+import Device from '../models/deviceModel';
 import SensorData from '../models/sensorDataModel';
 import Log from '../models/logModel';
 

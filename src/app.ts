@@ -10,9 +10,9 @@ import deviceRoutes from './routes/deviceRoutes';
 import logRoutes from './routes/logRoutes';
 import cameraRoutes from './routes/cameraRoutes'; // 添加摄像头路由
 import authMiddleware from './middleware/authMiddleware';
-import mqttHandler from './services/mqttHandler'; // 引入 MQTT 处理模块
 import cors from 'cors'; // 引入 cors 模块
 import loggerMiddleware from './middleware/loggerMiddleware'; // 新增
+import mqttTopicRoutes from './routes/mqttTopicRoutes';
 
 // 添加类型声明
 declare global {
@@ -54,16 +54,10 @@ mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/iot_platfor
   console.error('MongoDB 连接失败:', err);
 });
 
-// 启动 MQTT 客户端
-mqttHandler.on('connect', () => {
-  console.log('MQTT 客户端已连接');
-});
-
 // 路由
-//app.use('/api/devices', deviceRoutes);
 app.use('/api', deviceRoutes);
-//app.use('/api/logs', logRoutes);
 app.use('/api', logRoutes);
-app.use('/api/video', cameraRoutes); // 添加视频相关路由，使用 /api/video 前缀
+app.use('/api/video', cameraRoutes);
+app.use('/api/mqtt-topics', mqttTopicRoutes);
 
 export default app; 
