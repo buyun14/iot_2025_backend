@@ -13,6 +13,10 @@ import authMiddleware from './middleware/authMiddleware';
 import cors from 'cors'; // 引入 cors 模块
 import loggerMiddleware from './middleware/loggerMiddleware'; // 新增
 import mqttTopicRoutes from './routes/mqttTopicRoutes';
+import createSmartDeviceRoutes from './routes/smartDeviceRoutes';
+import mqtt from 'mqtt';
+import { SmartDeviceManager } from './services/smartDeviceManager';
+import { mqttHandler } from './services/mqttHandler';
 
 // 添加类型声明
 declare global {
@@ -22,6 +26,7 @@ declare global {
       REDIS_URL?: string;
       MQTT_BROKER_URL?: string;
       MONGO_URI?: string;
+      DEVICE_PREFIX?: string;
     }
   }
 }
@@ -41,6 +46,7 @@ console.log('环境变量:', {
   REDIS_URL: process.env.REDIS_URL,
   MQTT_BROKER_URL: process.env.MQTT_BROKER_URL,
   MONGO_URI: process.env.MONGO_URI,
+  DEVICE_PREFIX: process.env.DEVICE_PREFIX
 });
 
 // 中间件
@@ -54,10 +60,27 @@ mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/iot_platfor
   console.error('MongoDB 连接失败:', err);
 });
 
+// 创建MQTT客户端
+const mqttClient = mqtt.connect(process.env.MQTT_BROKER_URL || 'mqtt://localhost:1883');
+
+mqttClient.on('connect', () => {
+  console.log('MQTT Broker 已连接');
+});
+
+mqttClient.on('error', (err) => {
+  console.error('MQTT 连接错误:', err);
+});
+
 // 路由
 app.use('/api', deviceRoutes);
 app.use('/api', logRoutes);
 app.use('/api/video', cameraRoutes);
 app.use('/api/mqtt-topics', mqttTopicRoutes);
+
+// 添加智能设备路由
+const devicePrefix = process.env.DEVICE_PREFIX || 'home/devices';
+const smartDeviceManager = new SmartDeviceManager(mqttHandler.getMqttClient(), devicePrefix);
+mqttHandler.setSmartDeviceManager(smartDeviceManager);
+app.use('/api/smart', createSmartDeviceRoutes(mqttHandler.getMqttClient(), devicePrefix));
 
 export default app; 

@@ -4,8 +4,10 @@ import Device, { IDevice } from '../models/deviceModel';
 import SensorData from '../models/sensorDataModel';
 import MqttTopic from '../models/mqttTopicModel';
 import { Document } from 'mongoose';
+import { SmartDeviceManager } from './smartDeviceManager';
 
-interface MQTTMessage {
+// 基础传感器消息格式
+interface BaseSensorMessage {
   type: string;
   id: string;
   value: number;
@@ -19,10 +21,15 @@ console.log('MQTT_BROKER_URL:', process.env.MQTT_BROKER_URL);
 class MqttHandler {
   private client: mqtt.MqttClient;
   private subscribedTopics: Set<string> = new Set();
+  private smartDeviceManager: SmartDeviceManager | null = null;
 
   constructor() {
     this.client = mqtt.connect(process.env.MQTT_BROKER_URL || 'mqtt://localhost');
     this.setupEventHandlers();
+  }
+
+  public setSmartDeviceManager(manager: SmartDeviceManager) {
+    this.smartDeviceManager = manager;
   }
 
   private setupEventHandlers() {
@@ -44,9 +51,15 @@ class MqttHandler {
 
   private async subscribeToActiveTopics() {
     try {
+      // 订阅传感器主题
       const activeTopics = await MqttTopic.find({ isActive: true });
       for (const topic of activeTopics) {
         await this.subscribeToTopic(topic.topic);
+      }
+
+      // 订阅智能设备主题
+      if (process.env.DEVICE_PREFIX) {
+        await this.subscribeToTopic(`${process.env.DEVICE_PREFIX}/status/#`);
       }
     } catch (error) {
       console.error('订阅主题失败:', error);
@@ -91,41 +104,60 @@ class MqttHandler {
     });
   }
 
-  private async handleMessage(_topic: string, message: Buffer) {
+  private async handleMessage(topic: string, message: Buffer) {
     try {
-      const data = JSON.parse(message.toString()) as MQTTMessage;
+      // 检查是否是智能设备消息
+      const devicePrefix = process.env.DEVICE_PREFIX;
+      if (devicePrefix && topic.startsWith(`${devicePrefix}/`)) {
+        if (this.smartDeviceManager) {
+          console.log(`处理智能设备消息: ${topic}`);
+          console.log(`消息内容: ${message.toString()}`);
+          await this.smartDeviceManager.handleDeviceMessage(topic, message);
+        } else {
+          console.warn('SmartDeviceManager not initialized');
+        }
+        return;  // 智能设备消息处理完毕，直接返回
+      }
 
-      if (!data.type || !data.id || typeof data.value !== 'number') {
-        console.error('无效的消息格式:', data);
+      // 尝试解析为基础传感器消息
+      try {
+        const data = JSON.parse(message.toString()) as BaseSensorMessage;
+        // 检查是否符合基础传感器消息格式
+        if (!data.type || !data.id || typeof data.value !== 'number') {
+          console.log('不是基础传感器消息格式，忽略处理');
+          return;
+        }
+
+        const deviceId = `${data.type}-${data.id}`;
+        const value = data.value;
+
+        console.log(`收到基础传感器消息: ${JSON.stringify(data)}`);
+
+        let device = await Device.findOne({ device_id: deviceId }) as DeviceDocument;
+        if (!device) {
+          console.log(`基础传感器未找到: ${deviceId}，正在创建新传感器`);
+          device = new Device({
+            device_id: deviceId,
+            thresholds: { lower: 0, upper: 100 },
+            status: 'off',
+          });
+          await device.save();
+          console.log(`新基础传感器已创建: ${deviceId}`);
+        }
+
+        await redisClient.set(`device:${deviceId}:current_value`, value.toString(), { EX: 3600 });
+
+        this.updateDeviceStatus(device, value);
+        await device.save();
+
+        const sensorData = new SensorData({ device_id: deviceId, value });
+        await sensorData.save();
+
+        console.log(`基础传感器状态更新完成: ${deviceId}, 当前值: ${value}`);
+      } catch (parseError) {
+        console.log('消息格式无法解析，忽略处理');
         return;
       }
-
-      const deviceId = `${data.type}-${data.id}`;
-      const value = data.value;
-
-      console.log(`收到消息: ${JSON.stringify(data)}`);
-
-      let device = await Device.findOne({ device_id: deviceId }) as DeviceDocument;
-      if (!device) {
-        console.log(`设备未找到: ${deviceId}，正在创建新设备`);
-        device = new Device({
-          device_id: deviceId,
-          thresholds: { lower: 0, upper: 100 },
-          status: 'off',
-        });
-        await device.save();
-        console.log(`新设备已创建: ${deviceId}`);
-      }
-
-      await redisClient.set(`device:${deviceId}:current_value`, value.toString(), { EX: 3600 });
-
-      this.updateDeviceStatus(device, value);
-      await device.save();
-
-      const sensorData = new SensorData({ device_id: deviceId, value });
-      await sensorData.save();
-
-      console.log(`设备状态更新完成: ${deviceId}, 当前值: ${value}`);
     } catch (error) {
       console.error('MQTT 数据处理失败:', error);
     }
@@ -154,7 +186,13 @@ class MqttHandler {
       });
     });
   }
+
+  public getMqttClient(): mqtt.MqttClient {
+    return this.client;
+  }
 }
 
-export const mqttHandler = new MqttHandler();
-export default mqttHandler; 
+// 创建单例实例
+const mqttHandler = new MqttHandler();
+export { mqttHandler, MqttHandler };
+export default mqttHandler;
