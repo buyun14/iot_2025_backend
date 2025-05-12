@@ -484,12 +484,31 @@ class BlindStateProcessor extends BaseDeviceStateProcessor {
   protected readonly requiredFields = ['position', 'tilt', 'moving', 'last_move_time'];
 
   protected extractDeviceSpecificState(rawState: any): Partial<DeviceState> {
+    // 确保所有数值都被正确转换
+    const position = Math.min(100, Math.max(0, Number(rawState.position || 0)));
+    const tilt = Math.min(180, Math.max(0, Number(rawState.tilt || 0)));
+    const moving = Boolean(rawState.moving);
+    const lastMoveTime = rawState.last_move_time ? new Date(rawState.last_move_time) : new Date();
+
     return {
-      position: Number(rawState.position),
-      tilt: Number(rawState.tilt),
-      moving: Boolean(rawState.moving),
-      last_move_time: new Date(rawState.last_move_time)
+      position,
+      tilt,
+      moving,
+      last_move_time: lastMoveTime
     };
+  }
+
+  protected validateStateFormat(state: any): boolean {
+    return (
+      typeof state.position === 'number' &&
+      state.position >= 0 &&
+      state.position <= 100 &&
+      typeof state.tilt === 'number' &&
+      state.tilt >= 0 &&
+      state.tilt <= 180 &&
+      typeof state.moving === 'boolean' &&
+      state.last_move_time instanceof Date
+    );
   }
 }
 

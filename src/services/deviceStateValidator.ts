@@ -180,33 +180,66 @@ class BlindStateValidator extends BaseStateValidator {
   protected validateDeviceSpecificState(state: any): ValidationError[] {
     const errors: ValidationError[] = [];
 
-    const position = Number(state.position);
-    if (isNaN(position) || position < 0 || position > 100) {
+    // 验证位置
+    if ('position' in state) {
+      const position = Number(state.position);
+      if (isNaN(position) || position < 0 || position > 100) {
+        errors.push({
+          field: 'position',
+          message: 'position must be a number between 0 and 100'
+        });
+      }
+    } else {
       errors.push({
         field: 'position',
-        message: 'position must be a number between 0 and 100'
+        message: 'position is required'
       });
     }
 
-    const tilt = Number(state.tilt);
-    if (isNaN(tilt) || tilt < 0 || tilt > 180) {
+    // 验证倾斜角度
+    if ('tilt' in state) {
+      const tilt = Number(state.tilt);
+      if (isNaN(tilt) || tilt < 0 || tilt > 180) {
+        errors.push({
+          field: 'tilt',
+          message: 'tilt must be a number between 0 and 180'
+        });
+      }
+    } else {
       errors.push({
         field: 'tilt',
-        message: 'tilt must be a number between 0 and 180'
+        message: 'tilt is required'
       });
     }
 
-    if (typeof state.moving !== 'boolean') {
+    // 验证移动状态
+    if ('moving' in state) {
+      if (typeof state.moving !== 'boolean') {
+        errors.push({
+          field: 'moving',
+          message: 'moving must be a boolean'
+        });
+      }
+    } else {
       errors.push({
         field: 'moving',
-        message: 'moving must be a boolean'
+        message: 'moving is required'
       });
     }
 
-    if (state.last_move_time && !(state.last_move_time instanceof Date)) {
+    // 验证最后移动时间
+    if ('last_move_time' in state) {
+      const lastMoveTime = new Date(state.last_move_time);
+      if (isNaN(lastMoveTime.getTime())) {
+        errors.push({
+          field: 'last_move_time',
+          message: 'last_move_time must be a valid date'
+        });
+      }
+    } else {
       errors.push({
         field: 'last_move_time',
-        message: 'last_move_time must be a Date'
+        message: 'last_move_time is required'
       });
     }
 

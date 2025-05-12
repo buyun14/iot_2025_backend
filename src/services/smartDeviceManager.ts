@@ -16,7 +16,9 @@ const DEVICE_TYPE_MAP: { [key: string]: DeviceType } = {
   'doorlock': DeviceType.DOOR_LOCK,
   'blind': DeviceType.BLIND,
   'ac': DeviceType.AIR_CONDITIONER,
+  'airconditioner': DeviceType.AIR_CONDITIONER,//同ac
   'smoke_detector': DeviceType.SMOKE_DETECTOR,
+  'smokedetector': DeviceType.SMOKE_DETECTOR,//同smoke_detector
   'fan': DeviceType.FAN,
   'plug': DeviceType.PLUG
 };
@@ -65,13 +67,27 @@ export class SmartDeviceManager extends EventEmitter {
       // 获取或创建设备
       let device = await this.getDevice(deviceId);
       if (!device) {
-        console.log(`Device not found: ${deviceId}, creating new device`);
-        device = await this.createDevice({
-          deviceId,
-          type: deviceType,
-          name: `${rawState.type}-${parts[parts.length - 1]}`,
-          description: `Auto-created ${rawState.type} device`
-        });
+        try {
+          console.log(`Device not found: ${deviceId}, creating new device`);
+          device = await SmartDevice.findOneAndUpdate(
+            { deviceId },
+            {
+              deviceId,
+              type: deviceType,
+              name: `${rawState.type}-${parts[parts.length - 1]}`,
+              description: `Auto-created ${rawState.type} device`,
+              state: {
+                online: true,
+                lastUpdate: new Date(),
+                errorState: null
+              }
+            },
+            { upsert: true, new: true }
+          );
+        } catch (error) {
+          console.error('Error creating device:', error);
+          throw error;
+        }
       }
       
       // 处理设备状态
@@ -81,7 +97,7 @@ export class SmartDeviceManager extends EventEmitter {
       // 验证设备状态
       const validationErrors = DeviceStateValidatorFactory.getValidationErrors(deviceType, newState);
       if (validationErrors.length > 0) {
-        throw new Error(`Invalid device state: ${validationErrors.join(', ')}`);
+        throw new Error(`Invalid device state: ${validationErrors.map(e => e.message).join(', ')}`);
       }
 
       // 更新设备状态

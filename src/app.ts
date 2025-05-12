@@ -37,7 +37,8 @@ app.use(loggerMiddleware);
 
 // 在所有路由之前添加 CORS 配置
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000', // 前端开发服务器地址
+    //origin: process.env.FRONTEND_URL || 'http://localhost:3000', // 前端开发服务器地址
+    origin: '*', // 允许所有源
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));

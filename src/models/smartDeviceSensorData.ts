@@ -1,16 +1,15 @@
 import mongoose, { Document, Schema } from 'mongoose';
 import { DeviceType } from './smartDeviceModel';
 
-// 智能设备传感器数据接口
-export interface ISmartDeviceSensorData extends Document {
+// 基础接口 - 所有设备共有的字段
+export interface IBaseDeviceSensorData extends Document {
   device_id: string;
   device_type: DeviceType;
   timestamp: Date;
-  
-  // 通用字段
-  power_consumption?: number;  // 功率消耗 (W)
-  battery_level?: number;     // 电池电量 (%)
-  
+}
+
+// 设备特定字段接口
+export interface IDeviceSpecificFields {
   // 智能灯字段
   brightness?: number;        // 亮度 (0-100%)
   color_temp?: number;        // 色温 (2700K-6500K)
@@ -28,6 +27,7 @@ export interface ISmartDeviceSensorData extends Document {
   
   // 门锁字段
   locked?: boolean;          // 锁定状态
+  battery_level?: number;    // 电池电量 (%)
   last_lock_time?: Date;     // 最后上锁时间
   last_unlock_time?: Date;   // 最后解锁时间
   
@@ -61,9 +61,15 @@ export interface ISmartDeviceSensorData extends Document {
   current?: number;         // 电流 (A)
   power_factor?: number;    // 功率因数 (0.8-1)
   plug_timer?: number;      // 定时时间 (分钟)
+  
+  // 通用字段
+  power_consumption?: number; // 功率消耗 (W)
 }
 
-// 智能设备传感器数据模式
+// 完整的设备传感器数据接口
+export interface ISmartDeviceSensorData extends IBaseDeviceSensorData, IDeviceSpecificFields {}
+
+// 智能设备传感器数据Schema
 const smartDeviceSensorDataSchema = new Schema<ISmartDeviceSensorData>({
   device_id: {
     type: String,
@@ -83,24 +89,18 @@ const smartDeviceSensorDataSchema = new Schema<ISmartDeviceSensorData>({
     index: true
   },
   
-  // 通用字段
-  power_consumption: {
-    type: Number,
-    min: 0,
-    default: 0
-  },
-  battery_level: Number,
-  
   // 智能灯字段
   brightness: {
     type: Number,
     min: 0,
-    max: 100
+    max: 100,
+    sparse: true
   },
   color_temp: {
     type: Number,
     min: 2700,
-    max: 6500
+    max: 6500,
+    sparse: true
   },
   
   // 温控器字段
@@ -108,128 +108,191 @@ const smartDeviceSensorDataSchema = new Schema<ISmartDeviceSensorData>({
     type: Number,
     min: 16,
     max: 30,
-    index: true
+    sparse: true
   },
   target_temp: {
     type: Number,
     min: 16,
-    max: 30
+    max: 30,
+    sparse: true
   },
   humidity: {
     type: Number,
     min: 0,
     max: 100,
-    index: true
+    sparse: true
   },
   mode: {
     type: String,
     enum: ['auto', 'heat', 'cool'],
-    index: true
+    sparse: true
   },
   fan_speed: {
     type: String,
-    enum: ['auto', 'low', 'medium', 'high']
+    enum: ['auto', 'low', 'medium', 'high'],
+    sparse: true
   },
   heating_power: {
     type: Number,
     min: 0,
-    default: 0
+    sparse: true
   },
   cooling_power: {
     type: Number,
     min: 0,
-    default: 0
+    sparse: true
   },
   runtime_minutes: {
     type: Number,
     min: 0,
-    default: 0
+    sparse: true
   },
   energy_efficiency: {
     type: Number,
     min: 0,
-    default: 0
+    sparse: true
   },
   
   // 门锁字段
-  locked: Boolean,
-  last_lock_time: Date,
-  last_unlock_time: Date,
+  locked: {
+    type: Boolean,
+    sparse: true
+  },
+  battery_level: {
+    type: Number,
+    min: 0,
+    max: 100,
+    sparse: true
+  },
+  last_lock_time: {
+    type: Date,
+    sparse: true
+  },
+  last_unlock_time: {
+    type: Date,
+    sparse: true
+  },
   
   // 窗帘字段
   position: {
     type: Number,
     min: 0,
-    max: 100
+    max: 100,
+    sparse: true
   },
   tilt: {
     type: Number,
     min: 0,
-    max: 180
+    max: 180,
+    sparse: true
   },
-  moving: Boolean,
-  last_move_time: Date,
+  moving: {
+    type: Boolean,
+    sparse: true
+  },
+  last_move_time: {
+    type: Date,
+    sparse: true
+  },
   
   // 空调字段
-  ac_on: Boolean,
+  ac_on: {
+    type: Boolean,
+    sparse: true
+  },
   ac_temp: {
     type: Number,
     min: 16,
-    max: 30
+    max: 30,
+    sparse: true
   },
   ac_mode: {
     type: String,
-    enum: ['cool', 'heat', 'dry', 'fan']
+    enum: ['cool', 'heat', 'dry', 'fan'],
+    sparse: true
   },
   ac_fan_speed: {
     type: String,
-    enum: ['auto', 'low', 'medium', 'high']
+    enum: ['auto', 'low', 'medium', 'high'],
+    sparse: true
   },
-  ac_swing: Boolean,
+  ac_swing: {
+    type: Boolean,
+    sparse: true
+  },
   
   // 烟雾报警器字段
-  alarm: Boolean,
+  alarm: {
+    type: Boolean,
+    sparse: true
+  },
   smoke_level: {
     type: Number,
     min: 0,
-    max: 100
+    max: 100,
+    sparse: true
   },
-  last_test_time: Date,
+  last_test_time: {
+    type: Date,
+    sparse: true
+  },
   
   // 风扇字段
-  fan_on: Boolean,
+  fan_on: {
+    type: Boolean,
+    sparse: true
+  },
   speed: {
     type: Number,
     min: 1,
-    max: 3
+    max: 3,
+    sparse: true
   },
-  oscillate: Boolean,
+  oscillate: {
+    type: Boolean,
+    sparse: true
+  },
   timer: {
     type: Number,
     min: 0,
-    max: 120
+    max: 120,
+    sparse: true
   },
   
   // 智能插座字段
-  plug_on: Boolean,
+  plug_on: {
+    type: Boolean,
+    sparse: true
+  },
   voltage: {
     type: Number,
     min: 100,
-    max: 240
+    max: 240,
+    sparse: true
   },
   current: {
     type: Number,
-    min: 0
+    min: 0,
+    sparse: true
   },
   power_factor: {
     type: Number,
     min: 0.8,
-    max: 1
+    max: 1,
+    sparse: true
   },
   plug_timer: {
     type: Number,
     min: 0,
-    max: 120
+    max: 120,
+    sparse: true
+  },
+  
+  // 通用字段
+  power_consumption: {
+    type: Number,
+    min: 0,
+    sparse: true
   }
 });
 
