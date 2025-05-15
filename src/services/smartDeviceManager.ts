@@ -31,22 +31,21 @@ export class SmartDeviceManager extends EventEmitter {
     super();
     this.mqttClient = mqttClient;
     this.devicePrefix = devicePrefix;
-    this.setupMqttHandlers();
-  }
-
-  private setupMqttHandlers() {
-    // 订阅设备状态主题
-    this.mqttClient.subscribe(`${this.devicePrefix}/status/#`);
-    
-    // 处理接收到的消息
-    this.mqttClient.on('message', async (topic: string, message: Buffer) => {
-      await this.handleDeviceMessage(topic, message);
-    });
   }
 
   async handleDeviceMessage(topic: string, message: Buffer): Promise<void> {
     let deviceId: string | undefined;
     try {
+      // 先检查是否是注册消息
+      if (topic.startsWith('home/register/')) {
+        return; // 注册消息由MqttHandler处理
+      }
+
+      // 检查是否是设备状态消息
+      if (!topic.startsWith(`${this.devicePrefix}/status/`)) {
+        return; // 不是设备状态消息，忽略
+      }
+
       // 解析主题格式：{device_prefix}/status/{device_id}
       const parts = topic.split('/');
       if (parts.length < 3 || parts[parts.length - 2] !== 'status') {

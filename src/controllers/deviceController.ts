@@ -237,19 +237,35 @@ export const triggerFirmwareUpdate = async (req: Request, res: Response): Promis
  * @apiVersion 1.0.0
  *
  * @apiParam {String} id 设备ID
+ * @apiQuery {String} startTime 开始时间 (ISO格式)
+ * @apiQuery {String} endTime 结束时间 (ISO格式)
  *
  * @apiSuccess {Object[]} data 传感器数据列表
  * @apiSuccess {String} data.device_id 设备ID
  * @apiSuccess {Number} data.value 传感器值
  * @apiSuccess {Date} data.timestamp 时间戳
+ * @apiSuccess {String} data.status 设备状态
  *
  * @apiError (500) {String} message 服务器内部错误
  */
 export const getSensorDataHistory = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
+  const { startTime, endTime } = req.query;
+
   try {
+    // 构建查询条件
+    const query: any = { device_id: id };
+    
+    // 添加时间范围条件
+    if (startTime && endTime) {
+      query.timestamp = {
+        $gte: new Date(startTime as string),
+        $lte: new Date(endTime as string)
+      };
+    }
+
     // 查询传感器数据并按时间倒序排列
-    const data = await SensorData.find({ device_id: id })
+    const data = await SensorData.find(query)
       .sort({ timestamp: -1 }) // 最新数据优先
       .limit(100); // 默认限制返回数量（可扩展分页参数）
 

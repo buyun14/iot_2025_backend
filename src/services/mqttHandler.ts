@@ -11,6 +11,23 @@ interface BaseSensorMessage {
   type: string;
   id: string;
   value: number;
+  location?: {
+    floor: string;
+    room: string;
+    coordinates: [number, number, number];
+  };
+}
+
+// 摄像头消息格式
+interface CameraMessage {
+  type: 'camera';
+  id: string;
+  status: 'on' | 'off';
+  location?: {
+    floor: string;
+    room: string;
+    coordinates: [number, number, number];
+  };
 }
 
 type DeviceDocument = Document & IDevice;
@@ -35,6 +52,11 @@ class MqttHandler {
   private setupEventHandlers() {
     this.client.on('connect', async () => {
       console.log('MQTT 连接成功');
+      // 订阅设备状态主题
+      console.log(`正在订阅设备状态主题: home/status/#`);
+      await this.subscribeToTopic(`home/status/#`);
+
+      // 订阅其他活动主题
       await this.subscribeToActiveTopics();
     });
 
@@ -106,6 +128,8 @@ class MqttHandler {
 
   private async handleMessage(topic: string, message: Buffer) {
     try {
+      console.log('收到MQTT消息:', topic, message.toString());
+
       // 检查是否是智能设备消息
       const devicePrefix = process.env.DEVICE_PREFIX;
       if (devicePrefix && topic.startsWith(`${devicePrefix}/`)) {
@@ -116,12 +140,53 @@ class MqttHandler {
         } else {
           console.warn('SmartDeviceManager not initialized');
         }
-        return;  // 智能设备消息处理完毕，直接返回
+        return;
       }
 
-      // 尝试解析为基础传感器消息
+      // 尝试解析消息
       try {
-        const data = JSON.parse(message.toString()) as BaseSensorMessage;
+        const data = JSON.parse(message.toString());
+        
+        // 检查是否是摄像头消息
+        if (data.type === 'camera') {
+          const cameraData = data as CameraMessage;
+          const deviceId = `camera-${cameraData.id}`;
+          
+          console.log(`收到摄像头消息: ${JSON.stringify(cameraData)}`);
+
+          let device = await Device.findOne({ device_id: deviceId }) as DeviceDocument;
+          if (!device) {
+            console.log(`摄像头未找到: ${deviceId}，正在创建新摄像头`);
+            device = new Device({
+              device_id: deviceId,
+              type: 'camera',
+              status: cameraData.status,
+              location: cameraData.location,
+              last_message_time: new Date()
+            });
+            await device.save();
+            console.log(`新摄像头已创建: ${deviceId}`);
+          } else {
+            device.status = cameraData.status;
+            device.last_message_time = new Date();
+            if (cameraData.location) {
+              device.location = cameraData.location;
+            }
+            await device.save();
+          }
+
+          // 保存到数据库
+          await SensorData.create({
+            device_id: deviceId,
+            value: cameraData.status === 'on' ? 1 : 0,
+            timestamp: new Date(),
+            status: cameraData.status
+          });
+
+          console.log(`摄像头状态更新完成: ${deviceId}, 状态: ${cameraData.status}`);
+          return;
+        }
+
         // 检查是否符合基础传感器消息格式
         if (!data.type || !data.id || typeof data.value !== 'number') {
           console.log('不是基础传感器消息格式，忽略处理');
@@ -138,20 +203,34 @@ class MqttHandler {
           console.log(`基础传感器未找到: ${deviceId}，正在创建新传感器`);
           device = new Device({
             device_id: deviceId,
+            type: data.type,
             thresholds: { lower: 0, upper: 100 },
             status: 'off',
+            location: data.location,
+            last_message_time: new Date() // 记录最后消息时间
           });
           await device.save();
           console.log(`新基础传感器已创建: ${deviceId}`);
+        } else {
+          // 更新最后消息时间
+          device.last_message_time = new Date();
+          if (data.location) {
+            device.location = data.location;
+          }
         }
 
         await redisClient.set(`device:${deviceId}:current_value`, value.toString(), { EX: 3600 });
 
-        this.updateDeviceStatus(device, value);
+        this.updateDeviceStatus(device);
         await device.save();
 
-        const sensorData = new SensorData({ device_id: deviceId, value });
-        await sensorData.save();
+        // 保存到数据库
+        await SensorData.create({
+          device_id: deviceId,
+          value: data.value,
+          timestamp: new Date(),
+          status: device.status // 保存当前状态
+        });
 
         console.log(`基础传感器状态更新完成: ${deviceId}, 当前值: ${value}`);
       } catch (parseError) {
@@ -163,12 +242,17 @@ class MqttHandler {
     }
   }
 
-  private updateDeviceStatus(device: DeviceDocument, value: number): DeviceDocument {
-    const STATUS = { ON: 'on', OFF: 'off' } as const;
-    if (value <= device.thresholds.lower) {
-      device.status = STATUS.ON;
-    } else if (value >= device.thresholds.upper) {
-      device.status = STATUS.OFF;
+  private updateDeviceStatus(device: DeviceDocument): DeviceDocument {
+    // 检查最后消息时间
+    const now = new Date();
+    const lastMessageTime = device.last_message_time || new Date(0);
+    const timeDiff = now.getTime() - lastMessageTime.getTime();
+    
+    // 如果超过20秒没有消息，设置为离线
+    if (timeDiff > 20000) {
+      device.status = 'off';
+    } else {
+      device.status = 'on';
     }
     return device;
   }

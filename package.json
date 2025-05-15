@@ -15,6 +15,7 @@
     "docs:md": "apidoc-markdown -p docs/ -o docs/api.md"
   },
   "dependencies": {
+    "@types/uuid": "^10.0.0",
     "axios": "^1.6.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.1",
@@ -23,6 +24,7 @@
     "morgan": "^1.10.0",
     "mqtt": "^5.3.4",
     "redis": "^4.6.13",
+    "uuid": "^11.1.0",
     "winston": "^3.11.0"
   },
   "devDependencies": {
