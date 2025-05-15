@@ -18,18 +18,6 @@ interface BaseSensorMessage {
   };
 }
 
-// 摄像头消息格式
-interface CameraMessage {
-  type: 'camera';
-  id: string;
-  status: 'on' | 'off';
-  location?: {
-    floor: string;
-    room: string;
-    coordinates: [number, number, number];
-  };
-}
-
 type DeviceDocument = Document & IDevice;
 
 // 打印 MQTT_BROKER_URL
@@ -143,50 +131,9 @@ class MqttHandler {
         return;
       }
 
-      // 尝试解析消息
+      // 尝试解析为基础传感器消息
       try {
-        const data = JSON.parse(message.toString());
-        
-        // 检查是否是摄像头消息
-        if (data.type === 'camera') {
-          const cameraData = data as CameraMessage;
-          const deviceId = `camera-${cameraData.id}`;
-          
-          console.log(`收到摄像头消息: ${JSON.stringify(cameraData)}`);
-
-          let device = await Device.findOne({ device_id: deviceId }) as DeviceDocument;
-          if (!device) {
-            console.log(`摄像头未找到: ${deviceId}，正在创建新摄像头`);
-            device = new Device({
-              device_id: deviceId,
-              type: 'camera',
-              status: cameraData.status,
-              location: cameraData.location,
-              last_message_time: new Date()
-            });
-            await device.save();
-            console.log(`新摄像头已创建: ${deviceId}`);
-          } else {
-            device.status = cameraData.status;
-            device.last_message_time = new Date();
-            if (cameraData.location) {
-              device.location = cameraData.location;
-            }
-            await device.save();
-          }
-
-          // 保存到数据库
-          await SensorData.create({
-            device_id: deviceId,
-            value: cameraData.status === 'on' ? 1 : 0,
-            timestamp: new Date(),
-            status: cameraData.status
-          });
-
-          console.log(`摄像头状态更新完成: ${deviceId}, 状态: ${cameraData.status}`);
-          return;
-        }
-
+        const data = JSON.parse(message.toString()) as BaseSensorMessage;
         // 检查是否符合基础传感器消息格式
         if (!data.type || !data.id || typeof data.value !== 'number') {
           console.log('不是基础传感器消息格式，忽略处理');
